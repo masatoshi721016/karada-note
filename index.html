@@ -25,7 +25,7 @@
       <div class="sun-icon" aria-hidden="true">☀</div>
     </section>
 
-    <button class="history-shortcut" id="history-shortcut" type="button"><span class="history-shortcut-icon" aria-hidden="true">▥</span><span><strong>記録の履歴を見る</strong><small>一覧・グラフで振り返る</small></span><span class="history-shortcut-arrow" aria-hidden="true">›</span></button>
+    <button class="history-shortcut" id="history-shortcut" type="button"><span class="history-shortcut-icon" aria-hidden="true">▥</span><span><strong>記録のグラフ・履歴を見る</strong><small>一覧・グラフで振り返る</small></span><span class="history-shortcut-arrow" aria-hidden="true">›</span></button>
 
     <aside class="privacy-card" aria-label="記録のプライバシーについて">
       <span class="privacy-lock" aria-hidden="true">▣</span>
@@ -56,8 +56,8 @@
       <label class="filter-field"><span>表示する項目</span><select id="history-metric"><option value="all">全項目</option><option value="bp">血圧</option><option value="glucose">血糖値</option><option value="temperature">体温</option></select></label>
       <label class="filter-field"><span>期間</span><select id="history-period"><option value="7">1週間</option><option value="14">2週間</option><option value="1m">1か月</option><option value="3m" selected>3か月</option><option value="6m">半年</option><option value="12m">1年</option></select></label>
     </section>
-    <section class="history-section"><div class="section-heading"><div><p class="eyebrow">TREND</p><h2>グラフ</h2></div></div><div id="history-charts" class="history-charts"></div><p class="chart-note">グラフは見やすさのため表示点を間引くことがあります。記録一覧には対象期間内の全件を表示します。</p></section>
-    <section class="history-section"><div class="section-heading"><div><p class="eyebrow">RECORDS</p><h2>記録一覧</h2></div><span id="history-count" class="history-count"></span></div><div id="history-records" class="records-list"></div><button id="history-more" class="secondary-button" type="button" hidden>さらに表示</button></section>
+    <section class="history-section"><div class="section-heading"><div><p class="eyebrow">TREND</p><h2>グラフ</h2></div></div><div id="history-charts" class="history-charts"></div><p class="chart-note">グラフをダブルタップすると拡大・縮小できます。表示点は見やすさのため間引く場合があります。記録一覧には対象期間内の全件を表示します。</p></section>
+    <section class="history-section"><div class="section-heading"><div><p class="eyebrow">RECORDS</p><h2>記録一覧</h2></div><span id="history-count" class="history-count"></span></div><p class="history-list-explanation"><i aria-hidden="true"></i>設定した基準値を超えた記録は、この色で表示されます。</p><div id="history-records" class="records-list"></div><button id="history-more" class="secondary-button" type="button" hidden>さらに表示</button></section>
     <p class="disclaimer">グラフと履歴は記録の振り返り用です。診断や治療の判断には使用できません。</p>
   </main>
 
@@ -83,10 +83,12 @@
   <dialog id="reminder-dialog" class="app-dialog">
     <form id="reminder-form" method="dialog">
       <div class="dialog-top"><div><p class="eyebrow">REMINDER</p><h2>計測リマインダー</h2></div><button type="button" class="close-button" data-close="reminder-dialog" aria-label="閉じる">×</button></div>
-      <p class="helper-text">アプリを開いている間に、設定時刻のお知らせ表示を試みます。</p>
+      <p class="helper-text">曜日と時刻を複数登録できます。アプリが開いている間、設定時刻に通知またはお知らせ画面を表示します。</p>
       <label class="switch-row"><span><strong>リマインダーを使う</strong><small>通知許可が必要な場合があります</small></span><input id="reminder-enabled" type="checkbox"></label>
-      <label class="field"><span>お知らせ時刻</span><input id="reminder-time" type="time" value="09:00"></label>
-      <p class="helper-text">アプリやブラウザーが停止中、または端末がスリープ中は、お知らせが遅れたり表示されない場合があります。</p>
+      <div id="reminder-schedules" class="reminder-schedules"></div>
+      <button id="add-reminder-schedule" class="secondary-button" type="button">＋ 時刻を追加</button>
+      <p id="reminder-error" class="form-error" role="alert"></p>
+      <p class="helper-text">アプリやブラウザーが終了中、または端末がスリープ中は、通知が遅れたり届かない場合があります。通知許可がない場合は、アプリを開いているときに画面でお知らせします。</p>
       <button class="primary-button" type="submit">設定を保存</button>
     </form>
   </dialog>
@@ -130,8 +132,8 @@
     <form id="pin-setup-form" method="dialog">
       <div class="dialog-top"><div><p class="eyebrow">APP LOCK</p><h2>4桁の暗証番号を設定</h2></div><button type="button" class="close-button" data-close="pin-setup-dialog" aria-label="閉じる">×</button></div>
       <p class="helper-text">0から始まる番号も設定できます。忘れると、このブラウザー内で解除できなくなります。</p>
-      <label class="field"><span>暗証番号</span><input id="pin-new" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="new-password" placeholder="4桁"></label>
-      <label class="field"><span>確認のためもう一度</span><input id="pin-confirm" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="new-password" placeholder="4桁"></label>
+      <label class="field"><span>暗証番号</span><div class="pin-input-row"><input id="pin-new" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="new-password" placeholder="4桁"><button class="pin-visibility-button" type="button" data-toggle-password="pin-new" aria-pressed="false">表示</button></div></label>
+      <label class="field"><span>確認のためもう一度</span><div class="pin-input-row"><input id="pin-confirm" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="new-password" placeholder="4桁"><button class="pin-visibility-button" type="button" data-toggle-password="pin-confirm" aria-pressed="false">表示</button></div></label>
       <p id="pin-setup-error" class="form-error" role="alert"></p>
       <button class="primary-button" type="submit">設定してロックをON</button>
     </form>
@@ -140,7 +142,7 @@
   <dialog id="pin-unlock-dialog" class="notice-dialog pin-dialog">
     <div class="notice-symbol">▣</div><p class="eyebrow">APP LOCK</p><h2>暗証番号を入力</h2>
     <form id="pin-unlock-form">
-      <label class="field"><span class="visually-hidden">4桁の暗証番号</span><input id="pin-entry" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password" placeholder="4桁"></label>
+      <label class="field"><span class="visually-hidden">4桁の暗証番号</span><div class="pin-input-row"><input id="pin-entry" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password" placeholder="4桁"><button class="pin-visibility-button" type="button" data-toggle-password="pin-entry" aria-pressed="false">表示</button></div></label>
       <p id="pin-unlock-error" class="form-error" role="alert"></p>
       <button class="primary-button" type="submit">ロックを解除</button>
     </form>
