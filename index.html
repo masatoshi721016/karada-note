@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4f7f3">
+  <meta name="description" content="血圧・血糖値・体温を端末内に記録する個人用健康記録アプリ">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'; manifest-src 'self'">
+  <title>からだノート</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="stylesheet" href="src/style.css">
+</head>
+<body class="startup-locked">
+  <header class="topbar">
+    <div class="brand-mark" aria-hidden="true">＋</div>
+    <div><p class="eyebrow">MY HEALTH LOG</p><h1>からだノート</h1></div>
+    <button class="icon-button" id="settings-button" aria-label="設定">⚙</button>
+  </header>
+
+  <main id="app" class="page">
+    <section class="welcome-card">
+      <div><p class="eyebrow light">今日の記録</p><h2 id="today-label">今日の体調を<br>記録しましょう</h2></div>
+      <div class="sun-icon" aria-hidden="true">☀</div>
+    </section>
+
+    <button class="history-shortcut" id="history-shortcut" type="button"><span class="history-shortcut-icon" aria-hidden="true">▥</span><span><strong>記録の履歴を見る</strong><small>一覧・グラフで振り返る</small></span><span class="history-shortcut-arrow" aria-hidden="true">›</span></button>
+
+    <aside class="privacy-card" aria-label="記録のプライバシーについて">
+      <span class="privacy-lock" aria-hidden="true">▣</span>
+      <div><strong>記録はこの端末内に保存</strong><p>健康記録をアプリのサーバーへ送信しません。端末を共有・紛失した場合や、ブラウザーのデータを消去した場合はご注意ください。</p></div>
+    </aside>
+
+    <section class="section-heading"><div><p class="eyebrow">QUICK ENTRY</p><h2>測定値を記録</h2></div></section>
+    <div class="entry-grid">
+      <button class="entry-card blood-pressure" data-kind="bp"><span class="entry-icon">♡</span><span><strong>血圧</strong><small>上・下の血圧</small></span><span class="arrow">›</span></button>
+      <button class="entry-card glucose" data-kind="glucose"><span class="entry-icon">◉</span><span><strong>血糖値</strong><small>測定値</small></span><span class="arrow">›</span></button>
+      <button class="entry-card temperature" data-kind="temperature"><span class="entry-icon">♨</span><span><strong>体温</strong><small>測定値</small></span><span class="arrow">›</span></button>
+    </div>
+
+    <section class="reminder-card">
+      <div class="reminder-icon">◷</div><div class="reminder-copy"><strong>計測リマインダー</strong><p id="reminder-summary">時刻を設定してお知らせ</p></div>
+      <button class="text-button" id="reminder-button">設定</button>
+    </section>
+
+    <section class="section-heading history-heading"><div><p class="eyebrow">RECENT</p><h2>最近の記録</h2></div><button class="text-button" id="all-records">すべて見る</button></section>
+    <div id="demo-banner" class="demo-banner" hidden>表示中の記録には操作確認用のサンプルデータが含まれます</div>
+    <div id="recent-records" class="records-list"><div class="empty-state"><span>▤</span><p>記録はまだありません</p><small>測定値を入力すると、ここに表示されます</small></div></div>
+    <p class="disclaimer">このアプリは健康記録の補助を目的としています。診断や治療の判断には使用できません。</p>
+  </main>
+
+  <main id="history-page" class="page" hidden>
+    <section class="history-title"><p class="eyebrow">MEASUREMENT HISTORY</p><h2>記録の履歴</h2><p>項目と期間を選んで、記録と推移を確認できます。</p></section>
+    <section class="history-filters" aria-label="履歴の絞り込み">
+      <label class="filter-field"><span>表示する項目</span><select id="history-metric"><option value="all">全項目</option><option value="bp">血圧</option><option value="glucose">血糖値</option><option value="temperature">体温</option></select></label>
+      <label class="filter-field"><span>期間</span><select id="history-period"><option value="7">1週間</option><option value="14">2週間</option><option value="1m">1か月</option><option value="3m" selected>3か月</option><option value="6m">半年</option><option value="12m">1年</option></select></label>
+    </section>
+    <section class="history-section"><div class="section-heading"><div><p class="eyebrow">TREND</p><h2>グラフ</h2></div></div><div id="history-charts" class="history-charts"></div><p class="chart-note">グラフは見やすさのため表示点を間引くことがあります。記録一覧には対象期間内の全件を表示します。</p></section>
+    <section class="history-section"><div class="section-heading"><div><p class="eyebrow">RECORDS</p><h2>記録一覧</h2></div><span id="history-count" class="history-count"></span></div><div id="history-records" class="records-list"></div><button id="history-more" class="secondary-button" type="button" hidden>さらに表示</button></section>
+    <p class="disclaimer">グラフと履歴は記録の振り返り用です。診断や治療の判断には使用できません。</p>
+  </main>
+
+  <nav class="bottom-nav" aria-label="メインメニュー">
+    <button class="nav-item active" data-page="home"><span>⌂</span>ホーム</button>
+    <button class="nav-item" data-page="history"><span>▥</span>履歴</button>
+    <button class="nav-item" data-page="settings"><span>⚙</span>設定</button>
+  </nav>
+
+  <dialog id="entry-dialog" class="app-dialog">
+    <form id="entry-form" method="dialog">
+      <div class="dialog-top"><div><p class="eyebrow">NEW MEASUREMENT</p><h2 id="entry-title">測定値を記録</h2></div><button type="button" class="close-button" data-close="entry-dialog" aria-label="閉じる">×</button></div>
+      <input type="hidden" id="record-kind">
+      <label class="field" id="systolic-field"><span>上の血圧 <small>mmHg</small></span><input id="systolic" inputmode="numeric" type="number" min="40" max="300" placeholder="120"></label>
+      <label class="field" id="diastolic-field"><span>下の血圧 <small>mmHg</small></span><input id="diastolic" inputmode="numeric" type="number" min="20" max="200" placeholder="80"></label>
+      <label class="field" id="single-value-field"><span id="single-label">測定値</span><div class="input-with-unit"><input id="single-value" inputmode="decimal" type="number" step="any" placeholder="入力"><span id="single-unit">mg/dL</span></div></label>
+      <label class="field"><span>測定日時</span><input id="measured-at" type="datetime-local" required></label>
+      <p class="form-error" id="form-error" role="alert"></p>
+      <button class="primary-button" type="submit">記録を保存</button>
+    </form>
+  </dialog>
+
+  <dialog id="reminder-dialog" class="app-dialog">
+    <form id="reminder-form" method="dialog">
+      <div class="dialog-top"><div><p class="eyebrow">REMINDER</p><h2>計測リマインダー</h2></div><button type="button" class="close-button" data-close="reminder-dialog" aria-label="閉じる">×</button></div>
+      <p class="helper-text">アプリを開いている間に、設定時刻のお知らせ表示を試みます。</p>
+      <label class="switch-row"><span><strong>リマインダーを使う</strong><small>通知許可が必要な場合があります</small></span><input id="reminder-enabled" type="checkbox"></label>
+      <label class="field"><span>お知らせ時刻</span><input id="reminder-time" type="time" value="09:00"></label>
+      <p class="helper-text">アプリやブラウザーが停止中、または端末がスリープ中は、お知らせが遅れたり表示されない場合があります。</p>
+      <button class="primary-button" type="submit">設定を保存</button>
+    </form>
+  </dialog>
+
+  <dialog id="settings-dialog" class="app-dialog">
+    <form id="settings-form" method="dialog">
+      <div class="dialog-top"><div><p class="eyebrow">PERSONAL SETTINGS</p><h2>基準値の設定</h2></div><button type="button" class="close-button" data-close="settings-dialog" aria-label="閉じる">×</button></div>
+      <p class="helper-text">ご自身で決めた範囲を入力してください。医療上の基準値は表示していません。</p>
+      <h3 class="settings-group-title">血圧 <small>mmHg</small></h3>
+      <div class="range-fields"><label class="field"><span>上の血圧・下限</span><input id="bp-sys-min" type="number" inputmode="numeric" placeholder="任意"></label><label class="field"><span>上の血圧・上限</span><input id="bp-sys-max" type="number" inputmode="numeric" placeholder="任意"></label></div>
+      <div class="range-fields"><label class="field"><span>下の血圧・下限</span><input id="bp-dia-min" type="number" inputmode="numeric" placeholder="任意"></label><label class="field"><span>下の血圧・上限</span><input id="bp-dia-max" type="number" inputmode="numeric" placeholder="任意"></label></div>
+      <h3 class="settings-group-title">血糖値 <small>mg/dL</small></h3>
+      <div class="range-fields"><label class="field"><span>下限</span><input id="glucose-min" type="number" inputmode="decimal" placeholder="任意"></label><label class="field"><span>上限</span><input id="glucose-max" type="number" inputmode="decimal" placeholder="任意"></label></div>
+      <h3 class="settings-group-title">体温 <small>°C</small></h3>
+      <div class="range-fields"><label class="field"><span>下限</span><input id="temperature-min" type="number" inputmode="decimal" step="0.1" placeholder="任意"></label><label class="field"><span>上限</span><input id="temperature-max" type="number" inputmode="decimal" step="0.1" placeholder="任意"></label></div>
+      <button class="primary-button" type="submit">基準値を保存</button>
+      <div class="settings-divider"></div>
+      <h3 class="settings-group-title">アプリ起動時の暗証番号</h3>
+      <p class="helper-text">4桁の暗証番号で画面をロックします。端末内データの暗号化ではなく、端末を使える人による閲覧を完全に防ぐものではありません。</p>
+      <label class="switch-row"><span><strong>暗証番号ロック</strong><small id="pin-status">現在：OFF</small></span><input id="pin-enabled" type="checkbox"></label>
+      <button class="secondary-button" id="change-pin-button" type="button">暗証番号を設定・変更</button>
+      <div class="settings-divider"></div>
+      <h3 class="settings-group-title">バックアップと復元</h3>
+      <p id="local-backup-status" class="helper-text">アプリ内バックアップを確認しています。</p>
+      <button class="secondary-button" id="restore-local-backup" type="button">アプリ内バックアップから復元</button>
+      <p class="helper-text">アプリ内バックアップは同じ端末・ブラウザー内に自動保存されます。ブラウザーデータの消去、端末故障・紛失には備えられません。その場合に備える場合は、下のファイルを書き出して別の場所へ保管してください。</p>
+      <button class="secondary-button" id="export-backup" type="button">端末外へバックアップを書き出す</button>
+      <button class="secondary-button" id="select-backup" type="button">バックアップファイルを選んで復元</button>
+      <input id="backup-file" type="file" accept="application/json,.json" hidden>
+      <button class="secondary-button danger-button" id="reset-app-data" type="button">記録・設定をすべて初期化</button>
+      <p class="helper-text">初期化すると、記録・設定・PIN・アプリ内コピーを削除します。元に戻せません。必要な場合は、先に端末外へバックアップを書き出してください。</p>
+      <div class="settings-divider"></div>
+      <h3 class="settings-group-title">操作確認用サンプルデータ</h3>
+      <p class="helper-text">過去約3か月分の架空の記録を追加します。実際の測定値ではありません。</p>
+      <button class="secondary-button" id="add-demo-data" type="button">サンプルデータを追加</button>
+      <button class="quiet-button" id="remove-demo-data" type="button">サンプルデータを削除</button>
+    </form>
+  </dialog>
+
+  <dialog id="pin-setup-dialog" class="app-dialog pin-dialog">
+    <form id="pin-setup-form" method="dialog">
+      <div class="dialog-top"><div><p class="eyebrow">APP LOCK</p><h2>4桁の暗証番号を設定</h2></div><button type="button" class="close-button" data-close="pin-setup-dialog" aria-label="閉じる">×</button></div>
+      <p class="helper-text">0から始まる番号も設定できます。忘れると、このブラウザー内で解除できなくなります。</p>
+      <label class="field"><span>暗証番号</span><input id="pin-new" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="new-password" placeholder="4桁"></label>
+      <label class="field"><span>確認のためもう一度</span><input id="pin-confirm" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="new-password" placeholder="4桁"></label>
+      <p id="pin-setup-error" class="form-error" role="alert"></p>
+      <button class="primary-button" type="submit">設定してロックをON</button>
+    </form>
+  </dialog>
+
+  <dialog id="pin-unlock-dialog" class="notice-dialog pin-dialog">
+    <div class="notice-symbol">▣</div><p class="eyebrow">APP LOCK</p><h2>暗証番号を入力</h2>
+    <form id="pin-unlock-form">
+      <label class="field"><span class="visually-hidden">4桁の暗証番号</span><input id="pin-entry" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password" placeholder="4桁"></label>
+      <p id="pin-unlock-error" class="form-error" role="alert"></p>
+      <button class="primary-button" type="submit">ロックを解除</button>
+    </form>
+    <button id="forgot-pin-button" class="text-button" type="button">PINを忘れた場合</button>
+  </dialog>
+
+  <dialog id="reset-dialog" class="app-dialog">
+    <div class="dialog-top"><div><p class="eyebrow">RESET APP</p><h2>アプリを初期化</h2></div><button type="button" class="close-button" data-close="reset-dialog" aria-label="閉じる">×</button></div>
+    <p id="reset-description" class="helper-text">PINを解除してアプリ内バックアップから記録と設定を戻します。PINは解除されます。</p>
+    <button id="confirm-reset" class="primary-button danger-button" type="button">PINを解除して復元</button>
+  </dialog>
+
+  <dialog id="notice-dialog" class="notice-dialog"><div class="notice-symbol">◷</div><p class="eyebrow">MEASUREMENT REMINDER</p><h2>そろそろ計測の時間です</h2><p>体調に合わせて、必要なら測定値を記録してください。</p><button id="dismiss-notice" class="primary-button">確認しました</button></dialog>
+  <script src="src/app.js" defer></script>
+</body>
+</html>
