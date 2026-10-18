@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192-bleed.png">
   <link rel="apple-touch-icon" href="icons/icon-180-bleed.png">
-  <link rel="stylesheet" href="src/style.css?v=20261018-reminders">
+  <link rel="stylesheet" href="src/style.css?v=20261018-history-pin-guide">
 </head>
 <body class="startup-locked">
   <header class="topbar">
@@ -51,6 +51,7 @@
   </main>
 
   <main id="history-page" class="page" hidden>
+    <div class="history-toolbar"><button id="history-back-button" class="history-back-button" type="button" aria-label="ホームへ戻る">‹ <span>ホームへ戻る</span></button><strong>記録のグラフ・履歴</strong></div>
     <section class="history-title"><p class="eyebrow">MEASUREMENT HISTORY</p><h2>記録の履歴</h2><p>項目と期間を選んで、記録と推移を確認できます。</p></section>
     <section class="history-filters" aria-label="履歴の絞り込み">
       <label class="filter-field"><span>表示する項目</span><select id="history-metric"><option value="all">全項目</option><option value="bp">血圧</option><option value="glucose">血糖値</option><option value="temperature">体温</option></select></label>
@@ -98,6 +99,7 @@
     <form id="settings-form" method="dialog">
       <div class="dialog-top"><div><p class="eyebrow">PERSONAL SETTINGS</p><h2>基準値の設定</h2></div><button type="button" class="close-button" data-close="settings-dialog" aria-label="閉じる">×</button></div>
       <p class="helper-text">ご自身で決めた範囲を入力してください。医療上の基準値は表示していません。</p>
+      <button class="secondary-button" id="app-help-button" type="button">このアプリの使い方・説明</button>
       <h3 class="settings-group-title">血圧 <small>mmHg</small></h3>
       <div class="range-fields"><label class="field"><span>上の血圧・下限</span><input id="bp-sys-min" type="number" inputmode="numeric" placeholder="任意"></label><label class="field"><span>上の血圧・上限</span><input id="bp-sys-max" type="number" inputmode="numeric" placeholder="任意"></label></div>
       <div class="range-fields"><label class="field"><span>下の血圧・下限</span><input id="bp-dia-min" type="number" inputmode="numeric" placeholder="任意"></label><label class="field"><span>下の血圧・上限</span><input id="bp-dia-max" type="number" inputmode="numeric" placeholder="任意"></label></div>
@@ -133,21 +135,29 @@
     <form id="pin-setup-form" method="dialog">
       <div class="dialog-top"><div><p class="eyebrow">APP LOCK</p><h2>4桁の暗証番号を設定</h2></div><button type="button" class="close-button" data-close="pin-setup-dialog" aria-label="閉じる">×</button></div>
       <p class="helper-text">0から始まる番号も設定できます。忘れると、このブラウザー内で解除できなくなります。</p>
-      <label class="field"><span>暗証番号</span><div class="pin-input-row"><input id="pin-new" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="new-password" placeholder="4桁"><button class="pin-visibility-button" type="button" data-toggle-password="pin-new" aria-pressed="false">表示</button></div></label>
-      <label class="field"><span>確認のためもう一度</span><div class="pin-input-row"><input id="pin-confirm" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="new-password" placeholder="4桁"><button class="pin-visibility-button" type="button" data-toggle-password="pin-confirm" aria-pressed="false">表示</button></div></label>
+      <label class="field"><span>暗証番号</span><div class="pin-input-row"><input id="pin-new" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="new-password" placeholder="4桁"><button class="pin-visibility-button" type="button" data-toggle-password="pin-new" aria-label="暗証番号を表示" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="eye-slash" d="M3 3 21 21"/></svg></button></div></label>
+      <label class="field"><span>確認のためもう一度</span><div class="pin-input-row"><input id="pin-confirm" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="new-password" placeholder="4桁"><button class="pin-visibility-button" type="button" data-toggle-password="pin-confirm" aria-label="暗証番号を表示" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="eye-slash" d="M3 3 21 21"/></svg></button></div></label>
       <p id="pin-setup-error" class="form-error" role="alert"></p>
       <button class="primary-button" type="submit">設定してロックをON</button>
     </form>
   </dialog>
 
   <dialog id="pin-unlock-dialog" class="notice-dialog pin-dialog">
-    <div class="notice-symbol">▣</div><p class="eyebrow">APP LOCK</p><h2>暗証番号を入力</h2>
+    <p class="eyebrow">APP LOCK</p><h2>暗証番号を入力</h2>
     <form id="pin-unlock-form">
-      <label class="field"><span class="visually-hidden">4桁の暗証番号</span><div class="pin-input-row"><input id="pin-entry" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password" placeholder="4桁"><button class="pin-visibility-button" type="button" data-toggle-password="pin-entry" aria-pressed="false">表示</button></div></label>
+      <label class="field"><span class="visually-hidden">4桁の暗証番号</span><div class="pin-input-row"><input id="pin-entry" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password" placeholder="4桁"><button class="pin-visibility-button" type="button" data-toggle-password="pin-entry" aria-label="暗証番号を表示" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="eye-slash" d="M3 3 21 21"/></svg></button></div></label>
       <p id="pin-unlock-error" class="form-error" role="alert"></p>
       <button class="primary-button" type="submit">ロックを解除</button>
     </form>
     <button id="forgot-pin-button" class="text-button" type="button">PINを忘れた場合</button>
+  </dialog>
+
+  <dialog id="app-help-dialog" class="app-dialog">
+    <div class="dialog-top"><div><p class="eyebrow">APP GUIDE</p><h2>このアプリの使い方・説明</h2></div><button type="button" class="close-button" data-close="app-help-dialog" aria-label="閉じる">×</button></div>
+    <h3 class="settings-group-title">記録と保存</h3><p class="helper-text">血圧・血糖値・体温の記録は、この端末のブラウザー内に保存されます。アプリのサーバーには送信されず、別の端末とは同期しません。ブラウザーのデータ消去や端末故障に備え、必要に応じてバックアップを書き出してください。</p>
+    <h3 class="settings-group-title">暗証番号</h3><p class="helper-text">4桁の暗証番号は、アプリ画面を開くときの簡易ロックです。端末内データそのものを暗号化する機能ではありません。忘れた場合は、アプリ内バックアップから復元するか、データを初期化してPINを解除します。</p>
+    <h3 class="settings-group-title">リマインダー</h3><p class="helper-text">曜日と時刻を設定して計測を促します。アプリやブラウザーが終了中、端末がスリープ中、通知が許可されていない場合は、遅延または未表示になることがあります。通知の到着時刻は保証されません。</p>
+    <h3 class="settings-group-title">グラフと基準値</h3><p class="helper-text">グラフと色分けは、記録の振り返りを補助します。色分けは利用者が設定した基準値との比較です。診断・治療の判断や緊急時の連絡には使用しないでください。</p>
   </dialog>
 
   <dialog id="reset-dialog" class="app-dialog">
@@ -157,6 +167,6 @@
   </dialog>
 
   <dialog id="notice-dialog" class="notice-dialog"><div class="notice-symbol">◷</div><p class="eyebrow">MEASUREMENT REMINDER</p><h2>そろそろ計測の時間です</h2><p>体調に合わせて、必要なら測定値を記録してください。</p><button id="dismiss-notice" class="primary-button">確認しました</button></dialog>
-  <script src="src/app.js?v=20261018-reminders" defer></script>
+  <script src="src/app.js?v=20261018-history-pin-guide" defer></script>
 </body>
 </html>
