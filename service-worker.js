@@ -1,5 +1,5 @@
-const CACHE_NAME = 'karada-note-static-v5';
-const APP_SHELL = ['./', './index.html', './manifest.json', './src/app.js', './src/style.css', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-192-maskable.png', './icons/icon-512-maskable.png', './icons/icon-180.png'];
+const CACHE_NAME = 'karada-note-static-v6';
+const APP_SHELL = ['./', './index.html', './manifest.json', './src/app.js', './src/style.css', './icons/icon-192-bleed.png', './icons/icon-512-bleed.png', './icons/icon-192-maskable-bleed.png', './icons/icon-512-maskable-bleed.png', './icons/icon-180-bleed.png'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
