@@ -1,4 +1,4 @@
-const CACHE_NAME = 'karada-note-static-v4';
+const CACHE_NAME = 'karada-note-static-v5';
 const APP_SHELL = ['./', './index.html', './manifest.json', './src/app.js', './src/style.css', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-192-maskable.png', './icons/icon-512-maskable.png', './icons/icon-180.png'];
 
 self.addEventListener('install', event => {
