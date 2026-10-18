@@ -1,6 +1,6 @@
 const DB_NAME = 'karada-note';
 const DB_VERSION = 2;
-const backupSettingKeys = ['thresholds', 'reminderEnabled', 'reminderTime'];
+const backupSettingKeys = ['thresholds', 'reminderEnabled', 'reminderTime', 'reminderSchedules'];
 const $ = (selector) => document.querySelector(selector);
 const dbPromise = new Promise((resolve, reject) => {
   const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -199,6 +199,7 @@ const units = { glucose: 'mg/dL', temperature: '°C' };
 let activeReminder = null;
 let historyData = [];
 let historyVisibleCount = 50;
+let lastTouchZoomAt = 0;
 
 function localDateTimeValue(date = new Date()) {
   const offset = date.getTimezoneOffset() * 60000;
@@ -269,6 +270,17 @@ function svgElement(name, attrs = {}) {
   for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, String(value));
   return node;
 }
+function setChartZoom(card, zoomed = !card.classList.contains('chart-card-zoomed')) {
+  document.querySelectorAll('.chart-card-zoomed').forEach(item => item.classList.remove('chart-card-zoomed'));
+  card.classList.toggle('chart-card-zoomed', zoomed);
+  document.body.classList.toggle('chart-zoom-open', zoomed);
+}
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') {
+    const zoomed = document.querySelector('.chart-card-zoomed');
+    if (zoomed) setChartZoom(zoomed, false);
+  }
+});
 function appendChart(host, kind, records, scaleRecords, start, end, thresholds) {
   const card = document.createElement('article'); card.className = 'chart-card';
   const heading = document.createElement('div'); heading.className = 'chart-card-heading';
@@ -328,7 +340,26 @@ function appendChart(host, kind, records, scaleRecords, start, end, thresholds) 
     tick.textContent = new Intl.DateTimeFormat('ja-JP', { month: 'numeric', day: 'numeric' }).format(new Date(startTime + (endTime - startTime) * i / 4));
     svg.append(tick);
   }
-  card.append(svg);
+  const viewport = document.createElement('div'); viewport.className = 'chart-viewport'; viewport.append(svg); card.append(viewport);
+  card.addEventListener('dblclick', event => {
+    event.preventDefault();
+    if (Date.now() - lastTouchZoomAt > 500) setChartZoom(card);
+  });
+  let touchStart = null, lastTapAt = 0;
+  card.addEventListener('pointerdown', event => {
+    if (event.pointerType === 'touch') touchStart = { x: event.clientX, y: event.clientY };
+  });
+  card.addEventListener('pointerup', event => {
+    if (event.pointerType !== 'touch' || !touchStart) return;
+    const moved = Math.hypot(event.clientX - touchStart.x, event.clientY - touchStart.y) > 12;
+    touchStart = null;
+    if (moved) { lastTapAt = 0; return; }
+    const now = Date.now();
+    if (now - lastTapAt <= 350) {
+      lastTouchZoomAt = now; lastTapAt = 0; setChartZoom(card);
+    } else lastTapAt = now;
+  });
+  card.setAttribute('title', 'グラフをダブルタップして拡大・縮小');
   const legend = document.createElement('div'); legend.className = 'chart-legend';
   for (const item of series) {
     const points = rows.filter(record => getTimeSlot(record.measuredAt) === item.slot).map(record => ({ x: new Date(record.measuredAt).getTime(), y: Number(record[item.key]) })).filter(point => Number.isFinite(point.x) && Number.isFinite(point.y));
@@ -417,40 +448,116 @@ $('#entry-form').addEventListener('submit', async event => {
   if (!$('#history-page').hidden) await renderHistory();
 });
 
-function armReminder(time) {
+const weekdayNames = ['日', '月', '火', '水', '木', '金', '土'];
+async function getReminderSchedules() {
+  const saved = await getSetting('reminderSchedules');
+  if (Array.isArray(saved?.value)) return saved.value;
+  const legacy = await getSetting('reminderTime');
+  return [{ time: legacy?.value || '09:00', days: [0, 1, 2, 3, 4, 5, 6] }];
+}
+function renderReminderSchedules(schedules) {
+  const host = $('#reminder-schedules'); host.replaceChildren();
+  schedules.forEach((schedule, index) => {
+    const card = document.createElement('fieldset'); card.className = 'reminder-schedule';
+    const legend = document.createElement('legend'); legend.textContent = `お知らせ ${index + 1}`; card.append(legend);
+    const timeLabel = document.createElement('label'); timeLabel.className = 'reminder-time-field';
+    const timeTitle = document.createElement('span'); timeTitle.textContent = '時刻';
+    const timeInput = document.createElement('input'); timeInput.type = 'time'; timeInput.required = true; timeInput.dataset.reminderTime = ''; timeInput.value = schedule.time || '09:00';
+    timeLabel.append(timeTitle, timeInput); card.append(timeLabel);
+    const days = document.createElement('div'); days.className = 'weekday-picker'; days.setAttribute('aria-label', `お知らせ${index + 1}の曜日`);
+    weekdayNames.forEach((name, day) => {
+      const label = document.createElement('label'); label.className = 'weekday-chip';
+      const input = document.createElement('input'); input.type = 'checkbox'; input.value = String(day); input.checked = (schedule.days || []).includes(day);
+      const text = document.createElement('span'); text.textContent = name; label.append(input, text); days.append(label);
+    });
+    card.append(days);
+    const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'remove-reminder'; remove.dataset.removeReminder = String(index); remove.textContent = 'この時刻を削除'; card.append(remove);
+    host.append(card);
+  });
+  $('#add-reminder-schedule').disabled = schedules.length >= 8;
+}
+function readReminderSchedules() {
+  return [...$('#reminder-schedules').querySelectorAll('.reminder-schedule')].map(card => ({
+    time: card.querySelector('[data-reminder-time]').value,
+    days: [...card.querySelectorAll('.weekday-picker input:checked')].map(input => Number(input.value))
+  }));
+}
+function reminderSummary(schedules) {
+  if (!schedules.length) return '曜日・時刻を設定してお知らせ';
+  return schedules.map(schedule => {
+    const days = [...new Set(schedule.days)].sort((a, b) => a - b);
+    return `${days.length === 7 ? '毎日' : days.length ? `${days.map(day => weekdayNames[day]).join('・')}曜日` : '曜日未選択'} ${schedule.time}`;
+  }).join(' ／ ');
+}
+function nextReminderDate(schedules, now = new Date()) {
+  let next = null;
+  for (const schedule of schedules) {
+    if (!/^\d{2}:\d{2}$/.test(schedule.time || '') || !schedule.days?.length) continue;
+    const [hours, minutes] = schedule.time.split(':').map(Number);
+    for (const day of schedule.days) {
+      const candidate = new Date(now);
+      candidate.setDate(candidate.getDate() + ((day - candidate.getDay() + 7) % 7));
+      candidate.setHours(hours, minutes, 0, 0);
+      if (candidate <= now) candidate.setDate(candidate.getDate() + 7);
+      if (!next || candidate < next) next = candidate;
+    }
+  }
+  return next;
+}
+function armReminder(schedules) {
   clearTimeout(activeReminder);
-  const [hours, minutes] = time.split(':').map(Number);
   const now = new Date();
-  const target = new Date(now); target.setHours(hours, minutes, 0, 0);
-  if (target <= now) target.setDate(target.getDate() + 1);
+  const target = nextReminderDate(schedules, now);
+  if (!target) return;
   activeReminder = setTimeout(async () => {
     const permission = 'Notification' in window ? Notification.permission : 'unsupported';
     if (permission === 'granted' && 'serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      try { await navigator.serviceWorker.ready.then(registration => registration.showNotification('からだノート', { body: 'そろそろ計測の時間です。体調に合わせて測定してください。', icon: 'icons/icon-192.png' })); }
+      try { await navigator.serviceWorker.ready.then(registration => registration.showNotification('からだノート', { body: 'そろそろ計測の時間です。体調に合わせて測定してください。', icon: 'icons/icon-192-bleed.png' })); }
       catch { $('#notice-dialog').showModal(); }
     } else $('#notice-dialog').showModal();
     await saveSetting('lastReminderDate', new Date().toLocaleDateString('sv-SE'));
-    armReminder(time);
+    armReminder(schedules);
   }, Math.max(0, target - now));
 }
 async function loadReminder() {
   const enabled = await getSetting('reminderEnabled');
-  const time = await getSetting('reminderTime');
+  const schedules = await getReminderSchedules();
   $('#reminder-enabled').checked = Boolean(enabled?.value);
-  $('#reminder-time').value = time?.value || '09:00';
-  $('#reminder-summary').textContent = enabled?.value ? `毎日 ${time?.value || '09:00'} にお知らせ` : '時刻を設定してお知らせ';
-  if (enabled?.value) armReminder(time?.value || '09:00');
+  renderReminderSchedules(schedules);
+  $('#reminder-summary').textContent = enabled?.value ? reminderSummary(schedules) : '時刻を設定してお知らせ';
+  if (enabled?.value) armReminder(schedules); else clearTimeout(activeReminder);
 }
-$('#reminder-button').addEventListener('click', () => $('#reminder-dialog').showModal());
+$('#reminder-button').addEventListener('click', async () => {
+  const schedules = await getReminderSchedules();
+  $('#reminder-error').textContent = '';
+  renderReminderSchedules(schedules);
+  $('#reminder-dialog').showModal();
+});
+$('#add-reminder-schedule').addEventListener('click', () => {
+  const schedules = readReminderSchedules();
+  if (schedules.length >= 8) return;
+  const defaults = ['09:00', '12:00', '18:00', '08:00', '13:00', '19:00', '10:00', '20:00'];
+  schedules.push({ time: defaults[schedules.length], days: [0, 1, 2, 3, 4, 5, 6] });
+  renderReminderSchedules(schedules);
+});
+$('#reminder-schedules').addEventListener('click', event => {
+  const button = event.target.closest('[data-remove-reminder]');
+  if (!button) return;
+  const schedules = readReminderSchedules(); schedules.splice(Number(button.dataset.removeReminder), 1); renderReminderSchedules(schedules);
+});
 $('#reminder-form').addEventListener('submit', async event => {
   event.preventDefault();
   const enabled = $('#reminder-enabled').checked;
-  const time = $('#reminder-time').value;
+  const schedules = readReminderSchedules();
+  $('#reminder-error').textContent = '';
+  if (enabled && (!schedules.length || schedules.some(schedule => !schedule.time || !schedule.days.length))) {
+    $('#reminder-error').textContent = 'お知らせごとに時刻と曜日を1つ以上選んでください。'; return;
+  }
   if (enabled && 'Notification' in window && Notification.permission === 'default') await Notification.requestPermission();
   await saveSetting('reminderEnabled', enabled);
-  await saveSetting('reminderTime', time);
-  $('#reminder-summary').textContent = enabled ? `毎日 ${time} にお知らせ` : '時刻を設定してお知らせ';
-  if (enabled) armReminder(time); else clearTimeout(activeReminder);
+  await saveSetting('reminderSchedules', schedules);
+  $('#reminder-summary').textContent = enabled ? reminderSummary(schedules) : '時刻を設定してお知らせ';
+  if (enabled) armReminder(schedules); else clearTimeout(activeReminder);
   $('#reminder-dialog').close();
 });
 $('#dismiss-notice').addEventListener('click', () => $('#notice-dialog').close());
@@ -494,9 +601,17 @@ async function updateLocalBackupStatus() {
 function openPinSetup() {
   $('#pin-new').value = '';
   $('#pin-confirm').value = '';
+  for (const id of ['pin-new', 'pin-confirm']) { $(`#${id}`).type = 'password'; $(`[data-toggle-password="${id}"]`).textContent = '表示'; $(`[data-toggle-password="${id}"]`).setAttribute('aria-pressed', 'false'); }
   $('#pin-setup-error').textContent = '';
   $('#pin-setup-dialog').showModal();
 }
+document.querySelectorAll('[data-toggle-password]').forEach(button => button.addEventListener('click', () => {
+  const input = $(`#${button.dataset.togglePassword}`);
+  const reveal = input.type === 'password';
+  input.type = reveal ? 'text' : 'password';
+  button.textContent = reveal ? '隠す' : '表示';
+  button.setAttribute('aria-pressed', String(reveal));
+}));
 $('#pin-enabled').addEventListener('change', async () => {
   if ($('#pin-enabled').checked) {
     const verifier = await getSetting('pinVerifier');
